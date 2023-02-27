@@ -1,0 +1,382 @@
+openapi: 3.0.0
+x-stoplight:
+  id: rfy1yh3kv7uus
+info:
+  title: Direct Debits API
+  description: Direct Debits API version 2
+  version: '2.0'
+  contact:
+    name: PaaS Team
+    email: bjm@cba.com.au
+    url: www.commbank.com.au
+servers:
+  - url: 'http://localhost:3000/v1/direct-debits'
+paths:
+  /agreements:
+    post:
+      summary: Create an Agreement
+      operationId: post-agreements
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/agreement'
+      description: |-
+        Creates an **agreement** which allows the creditor to pull funds from a debtor account. 
+
+        The agreement must first be approved by the debtor party in order to pull funds from their acccount.
+
+        These direct debit **payments** can be on an automated schedule, ad-hoc or one-off. If a recurring schedule is provided, then debits will be automatically created as per the approved schedule.
+      tags:
+        - Agreements
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/createAgreementRequest'
+    get:
+      summary: List Agreements
+      tags:
+        - Agreements
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/agreement'
+      operationId: get-agreements
+      description: List all agreements
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: lastId
+          description: The id of the last result returned
+        - schema:
+            type: string
+            default: '50'
+          in: query
+          name: limit
+          description: Max number of results
+        - schema:
+            type: string
+            format: date-time
+          in: query
+          name: startDate
+          description: Start Date
+        - schema:
+            type: string
+            format: date-time
+          in: query
+          name: endDate
+          description: End Date
+  '/agreements/{id}':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+        description: Agreement ID
+    get:
+      summary: Get an Agreement
+      tags:
+        - Agreements
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/agreement'
+      operationId: get-agreements-id
+      description: Retrieve a single agreement
+    patch:
+      summary: Update an Agreement
+      operationId: patch-agreements-id
+      responses:
+        '200':
+          description: OK
+      description: |-
+        Update an Agreement.
+
+        TODO
+
+        NOTE - needs to support both Bilateral and Unilateral updates to the agreement.
+      tags:
+        - Agreements
+    delete:
+      summary: Cancel an Agreement
+      operationId: delete-agreements-id
+      responses:
+        '200':
+          description: OK
+      description: Cancel an Agreement.
+      tags:
+        - Agreements
+  '/agreements/{id}/status':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+        description: Agreement ID
+    patch:
+      summary: Update Agreement Status
+      operationId: patch-agreements-status
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Agreements
+      description: |-
+        Update the status of the agreement.
+
+        Can be used to suspend or reactivate an existing agreement.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: The new agreement status
+                reasonCode:
+                  type: string
+                  description: The reason code
+                reasonDescription:
+                  type: string
+                  description: An optional description of why the status was changed
+              required:
+                - status
+                - reasonCode
+        description: ''
+  '/agreements/{id}/payments':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+        description: Agreement ID
+    post:
+      summary: Create Payments for Agreement
+      operationId: post-agreements-id-payments
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: ./payments.yml#/components/schemas/payment
+      description: This endpoint allows you to debit an _ad-hoc_ agreement by creating a **payment**.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                reference:
+                  type: string
+              required:
+                - amount
+                - reference
+      tags:
+        - Agreements
+components:
+  schemas:
+    agreement:
+      title: Agreement
+      x-stoplight:
+        id: kxgxp4szlvyqo
+      description: ''
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: string
+              description: Unique id for the agreement
+        - $ref: '#/components/schemas/createAgreementRequest'
+        - type: object
+          properties:
+            status:
+              type: string
+              enum:
+                - pending
+                - cancelled
+                - approved
+                - declined
+                - active
+                - suspended
+        - type: object
+    createAgreementRequest:
+      title: Create Agreement Request
+      x-stoplight:
+        id: kxgxp4szlvyqo
+      type: object
+      description: ''
+      properties:
+        type:
+          type: string
+          enum:
+            - oneoff
+            - fixed
+            - ongoing
+            - adhoc
+          description: The type of agreement
+        reference:
+          type: string
+          description: Short reference of the agreement
+        description:
+          type: string
+          description: Friendly description of the agreement
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+        source:
+          discriminator:
+            propertyName: type
+          oneOf:
+            - title: Bank Account
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - bankAccount
+                bsb:
+                  type: string
+                accountNumber:
+                  type: string
+                accountName:
+                  type: string
+              required:
+                - type
+                - bsb
+                - accountNumber
+            - title: Pay ID
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - payId
+                payId:
+                  type: string
+                payIdType:
+                  type: string
+              required:
+                - type
+                - payId
+                - payIdType
+          type: object
+        destination:
+          discriminator:
+            propertyName: type
+          oneOf:
+            - title: Internal Account
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - internalAccount
+                accountId:
+                  type: string
+              required:
+                - type
+                - accountId
+            - title: Bank Account
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - bankAccount
+                bsb:
+                  type: string
+                accountNumber:
+                  type: string
+                accountName:
+                  type: string
+              required:
+                - type
+                - bsb
+                - accountNumber
+            - title: Pay ID
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - payId
+                payId:
+                  type: string
+                payIdType:
+                  type: string
+              required:
+                - type
+                - payId
+                - payIdType
+          type: object
+        paymentDetails:
+          type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - fixed
+                - usageBased
+                - variable
+            amount:
+              type: number
+            maxAmount:
+              type: number
+            purpose:
+              type: string
+              description: See payment purpose code reference data
+            schedule:
+              description: 'Describes the recurring schedule details, if applicable'
+              type: object
+              properties:
+                frequencyPerPeriod:
+                  type: number
+                period:
+                  type: string
+                  enum:
+                    - daily
+                    - fortnightly
+                    - intra-day
+                    - semi-annual
+                    - monthly
+                    - quarterly
+                    - weekly
+                    - annually
+                dayOfMonth:
+                  type: integer
+                fixedDuration:
+                  type: string
+                TODOScheduleContract:
+                  type: string
+        metadata:
+          type: object
+          description: Optional key/value data to be stored against the agreement
+      required:
+        - type
+        - reference
+        - description
+        - validFrom
+        - paymentDetails
+tags:
+  - name: Agreements
+    description: Direct Debit Agreements

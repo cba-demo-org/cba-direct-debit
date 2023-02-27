@@ -1,0 +1,286 @@
+openapi: 3.1.0
+x-stoplight:
+  id: mq9yu37tpx2a1
+info:
+  title: Payments API
+  version: '1.0'
+  description: ''
+  summary: Payments (Transfers) API
+servers:
+  - url: 'http://localhost:3000/v1/payments'
+paths:
+  /payments:
+    post:
+      summary: Create a Payment
+      operationId: post-payments
+      responses:
+        '201':
+          description: 201 - Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/payment'
+      tags:
+        - Payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/createPaymentRequest'
+            examples:
+              Bank Account payment:
+                value:
+                  amount: 200
+                  reference: REF-1234
+                  description: optional description
+                  source:
+                    type: internalAccount
+                    accountId: b59c05d2-eed2-4c32-950a-7e8d78744ee7
+                  destination:
+                    type: bankAccount
+                    bsb: 123-123
+                    accountNumber: '123456'
+                    accountName: Tim Jones
+              Pay ID payment:
+                value:
+                  amount: 200
+                  reference: REF-1234
+                  description: optional description
+                  source:
+                    type: internalAccount
+                    accountId: b59c05d2-eed2-4c32-950a-7e8d78744ee7
+                  destination:
+                    type: payId
+                    payId: '0402555555'
+                    payIdType: mobile
+              BPay payment:
+                value:
+                  amount: 200
+                  reference: REF-1234
+                  description: description
+                  source:
+                    type: internalAccount
+                    accountId: b59c05d2-eed2-4c32-950a-7e8d78744ee7
+                  destination:
+                    type: bPay
+                    billerCode: '11232'
+                    reference: '1234555'
+        description: ''
+      description: 'A **Payment** represents the movement of funds between accounts within the bank or to/from an account held with another bank, using the appropriate **payment method**. For example a BPay transfer or an Osko payment.'
+    get:
+      summary: List Payments
+      operationId: get-payments
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/payment'
+      description: List all payments matching filter criteria
+      tags:
+        - Payments
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: lastId
+        - schema:
+            type: string
+            default: '50'
+          in: query
+          name: limit
+  '/payments/{id}':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+        description: The payment Id
+    get:
+      summary: Get a Payment
+      tags:
+        - Payments
+      responses: {}
+      operationId: get-payments-id
+      description: ''
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/payment'
+  '/payments/{id}/refund':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+        description: The payment id
+    post:
+      summary: Refund a Payment
+      operationId: post-payments-refund
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Payments
+      description: TODO
+  /payment-schedules:
+    get:
+      summary: List all Payment Schedules
+      tags:
+        - Payment Schedules
+      responses: {}
+      operationId: get-payment-schedules
+      description: TODO
+    parameters: []
+    post:
+      summary: Create a Payment Schedule
+      operationId: post-payment-schedules
+      responses:
+        '200':
+          description: OK
+      tags:
+        - Payment Schedules
+      description: |-
+        TODO
+
+        Define the lifecycle of the payment schedule.
+  '/payment-schedules/{id}':
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+    get:
+      summary: Get a Payment Schedule
+      tags:
+        - Payment Schedules
+      responses: {}
+      operationId: get-payment-schedules-id
+      description: TODO
+components:
+  schemas:
+    payment:
+      allOf:
+        - type: object
+          properties:
+            id:
+              type: string
+              description: Unique id for the payment
+        - $ref: '#/components/schemas/createPaymentRequest'
+        - type: object
+          properties:
+            status:
+              type: string
+      title: Payment
+    createPaymentRequest:
+      title: Create Payment Request
+      x-stoplight:
+        id: ii8o0kqo2bhzu
+      type: object
+      x-internal: false
+      properties:
+        amount:
+          type: number
+        reference:
+          type: string
+        description:
+          type: string
+        source:
+          discriminator:
+            propertyName: type
+          oneOf:
+            - title: Internal Account
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - internalAccount
+                accountId:
+                  type: string
+              required:
+                - type
+                - accountId
+          type: object
+        destination:
+          discriminator:
+            propertyName: type
+          oneOf:
+            - title: Internal Account
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - internalAccount
+                accountId:
+                  type: string
+              required:
+                - type
+                - accountId
+            - title: Bank Account
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - bankAccount
+                bsb:
+                  type: string
+                accountNumber:
+                  type: string
+                accountName:
+                  type: string
+              required:
+                - type
+                - bsb
+                - accountNumber
+            - title: Pay ID
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - payId
+                payId:
+                  type: string
+                payIdType:
+                  type: string
+              required:
+                - type
+                - payId
+                - payIdType
+            - title: BPay
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - bPay
+                billerCode:
+                  type: string
+                reference:
+                  type: string
+              required:
+                - type
+                - billerCode
+                - reference
+            - title: Card
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - card
+          type: object
+        metadata:
+          type: object
+          description: Optional key/value pair metadata
+      required:
+        - amount
+        - reference
+        - source
