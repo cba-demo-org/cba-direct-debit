@@ -197,7 +197,7 @@ paths:
         - Agreements
 externalDocs:
   description: API Documentation
-  url: ./README.md
+  url: https://github.com/cba-demo-org/cba-direct-debit/blob/main/README.md
 components:
   schemas:
     agreement:
