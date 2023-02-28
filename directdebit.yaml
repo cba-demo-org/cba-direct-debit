@@ -195,6 +195,9 @@ paths:
                 - reference
       tags:
         - Agreements
+externalDocs:
+  description: API Documentation
+  url: https://github.com/cba-demo-org/cba-direct-debit/blob/main/directDebit.md
 components:
   schemas:
     agreement:
